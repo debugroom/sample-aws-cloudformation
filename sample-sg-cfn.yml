@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Sample CloudFormation template with YAML - SecurityGroup
+
+Parameters:
+  StackName:
+    Description: Target VPC Stack Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: sample-cloudformation-vpc-1
+
+Resources:
+  SampleCloudFormationSecurityGroupPublicALB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: SampleCloudFormationSecurityGroupPublicALB
+      GroupDescription: http access
+      VpcId:
+        Fn::ImportValue: !Sub ${StackName}-VPCID
+      Tags:
+        - Key : Name
+          Value: SampleCloudFormationSecurityGroupPublicALB
+
+  SampleCloudFormationSecurityGroupInggressPublicALB:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SampleCloudFormationSecurityGroupPublicALB
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 0.0.0.0/0
+
+  SampleCloudFormationSecurityGroupPrivateALB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: SampleCloudFormationSecurityGroupPrivateALB
+      GroupDescription: http access
+      VpcId:
+        Fn::ImportValue: !Sub ${StackName}-VPCID
+      Tags:
+        - Key : Name
+          Value: SampleCloudFormationSecurityGroupPrivateALB
+
+  SampleCloudFormationSecurityGroupIngressPrivateALB:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SampleCloudFormationSecurityGroupPrivateALB
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 172.100.0.0/16
+
+  SampleCloudFormationSecurityGroupFrontendEcsCluster:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: SampleCloudFormationSecurityGroupFrontendEcsCluster
+      GroupDescription: http access only alb
+      VpcId:
+        Fn::ImportValue: !Sub ${StackName}-VPCID
+      Tags:
+        - Key : Name
+          Value: SampleCloudFormationSecurityGroupFrontendEcsCluster
+
+  SampleCloudFormationSecurityGroupIngressFrontendEcsCluster:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SampleCloudFormationSecurityGroupFrontendEcsCluster
+      IpProtocol: tcp
+      FromPort: 32768
+      ToPort: 61000
+      SourceSecurityGroupId: !Ref SampleCloudFormationSecurityGroupPublicALB
+
+  SampleCloudFormationSecurityGroupIngressForSSHFrontendEcsCluster:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SampleCloudFormationSecurityGroupFrontendEcsCluster
+      IpProtocol: ssh
+      FromPort: 22
+      ToPort: 22
+      CidrIp: 0.0.0.0/0
+
+  SampleCloudFormationSecurityGroupBackendEcsCluster:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: SampleCloudFormationSecurityGroupBackendEcsCluster
+      GroupDescription: http access only alb
+      VpcId:
+        Fn::ImportValue: !Sub ${StackName}-VPCID
+      Tags:
+        - Key : Name
+          Value: SampleCloudFormationSecurityGroupBackendEcsCluster
+
+  SampleCloudFormationSecurityGroupIngressBackendEcsCluster:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SampleCloudFormationSecurityGroupBackendEcsCluster
+      IpProtocol: tcp
+      FromPort: 32768
+      ToPort: 61000
+      SourceSecurityGroupId: !Ref SampleCloudFormationSecurityGroupPrivateALB
+
+Outputs:
+  SampleCloudFormationSecurityGroupPublicALB:
+    Description: Security Group for Public ALB
+    Value: !Ref SampleCloudFormationSecurityGroupPublicALB
+    Export:
+      Name: !Sub ${StackName}-SecurityGroupPublicALB
+
+  SampleCloudFormationSecurityGroupPrivateALB:
+    Description: Security Group for Private ALB
+    Value: !Ref SampleCloudFormationSecurityGroupPrivateALB
+    Export:
+      Name: !Sub ${StackName}-SecurityGroupPrivateALB
+
+  SampleCloudFormationSecurityGroupFrontendEcsCluster:
+    Description: Security Group for Frontend ECS Cluster
+    Value: !Ref SampleCloudFormationSecurityGroupFrontendEcsCluster
+    Export:
+      Name: !Sub ${StackName}-SecurityGroupFrontendEcsCluster
+
+  SampleCloudFormationSecurityGroupBackendEcsCluster:
+    Description: Security Group for Backend ECS Cluster
+    Value: !Ref SampleCloudFormationSecurityGroupBackendEcsCluster
+    Export:
+      Name: !Sub ${StackName}-SecurityGroupBackendEcsCluster
+

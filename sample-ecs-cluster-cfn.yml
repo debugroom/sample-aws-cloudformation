@@ -1,0 +1,156 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Sample CloudFormation template with YAML - ECS Cluster
+
+Parameters:
+  StackName:
+    Description: Target VPC Stack Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: sample-cloudformation-vpc-1
+  ECSAMI:
+    Description: AMI ID
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: r4.large
+  DesiredCapacity:
+    Type: Number
+    Default: '1'
+    Description: Number of EC2 instances to launch in your ECS cluster.
+  EC2InstanceMaxSizeOfECS:
+    Type: Number
+    Default: '3'
+    Description: Maximum number of EC2 instances that can be launched in your ECS cluster.
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: test
+    Description: Key pair setting to ECS Cluster
+
+
+Resources:
+  SampleCloudFormationECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+
+  SampleCloudFormationECSInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref SampleCloudFormationECSRole
+
+  SampleCloudFormationFrontendECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: sample-frontend-cluster
+      Tags:
+        - Key: Name
+          Value: SampleCloudFormationFrontendECSCluster
+
+  SampleCloudFormationBackendECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: sample-backend-cluster
+
+  SampleCloudFormationFrontendECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub ${StackName}-PublicSubnet1
+        - Fn::ImportValue: !Sub ${StackName}-PublicSubnet2
+      LaunchConfigurationName: !Ref SampleCloudFormationFrontendECSLaunchConfiguration
+      MinSize: '0'
+      MaxSize: !Ref EC2InstanceMaxSizeOfECS
+      DesiredCapacity: !Ref DesiredCapacity
+      Tags:
+        - Key: Name
+          Value: SampleCloudFormationFrontendECSCluster
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
+
+  SampleCloudFormationFrontendECSLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref ECSAMI
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref SampleCloudFormationECSInstanceProfile
+      KeyName: !Ref KeyPairName
+      SecurityGroups:
+        - Fn::ImportValue: !Sub ${StackName}-SecurityGroupFrontendEcsCluster
+      AssociatePublicIpAddress: true
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${SampleCloudFormationFrontendECSCluster} >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource SampleCloudFormationFrontendECSAutoScalingGroup --region ${AWS::Region}
+
+  SampleCloudFormationBackendECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet1
+        - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet2
+      LaunchConfigurationName: !Ref SampleCloudFormationBackendECSLaunchConfiguration
+      MinSize: '0'
+      MaxSize: !Ref EC2InstanceMaxSizeOfECS
+      DesiredCapacity: !Ref DesiredCapacity
+      Tags:
+        - Key: Name
+          Value: SampleCloudFormationBackendECSCluster
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
+
+  SampleCloudFormationBackendECSLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref ECSAMI
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref SampleCloudFormationECSInstanceProfile
+      KeyName: !Ref KeyPairName
+      SecurityGroups:
+        - Fn::ImportValue: !Sub ${StackName}-SecurityGroupBackendEcsCluster
+      AssociatePublicIpAddress: false
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${SampleCloudFormationBackendECSCluster} >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource SampleCloudFormationBackendECSAutoScalingGroup --region ${AWS::Region}
+
+Outputs:
+  SampleCloudFormationFrontendECSCluster:
+    Description: Frontend ECS Cluster
+    Value: !Ref SampleCloudFormationFrontendECSCluster
+    Export:
+      Name: !Sub ${StackName}-FrontendEcsCluster
+
+  SampleCloudFormationBackendECSCluster:
+    Description: Backend ECS Cluster
+    Value: !Ref SampleCloudFormationBackendECSCluster
+    Export:
+      Name: !Sub ${StackName}-BackendEcsCluster

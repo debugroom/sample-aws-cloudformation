@@ -1,0 +1,174 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Sample CloudFormation template with YAML - ApplicationLoadBalancer
+
+Parameters:
+  StackName:
+    Description: Target VPC Stack Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: sample-cloudformation-vpc-1
+
+Resources:
+  SampleCloudFormationFrontendALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: FrontendALB
+      Subnets:
+        - Fn::ImportValue: !Sub ${StackName}-PublicSubnet1
+        - Fn::ImportValue: !Sub ${StackName}-PublicSubnet2
+      SecurityGroups:
+        - Fn::ImportValue: !Sub ${StackName}-SecurityGroupPublicALB
+
+  SampleCloudFormationPublicALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: sample-cfn-public-tg-default
+      VpcId:
+        Fn::ImportValue: !Sub ${StackName}-VPCID
+      Port: 80
+      Protocol: HTTP
+      HealthCheckPath: /frontend/index.html
+      HealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '20'
+
+  SampleCloudFormationPublicALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref SampleCloudFormationFrontendALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref SampleCloudFormationPublicALBTargetGroup
+
+  SampleCloudFormationBackendALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: BackendALB
+      Subnets:
+        - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet1
+        - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet2
+      SecurityGroups:
+        - Fn::ImportValue: !Sub ${StackName}-SecurityGroupPrivateALB
+
+  SampleCloudFormationPrivateALBTargetGroupDefault:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: sample-cfn-private-tg-default
+      VpcId:
+        Fn::ImportValue: !Sub ${StackName}-VPCID
+      Port: 80
+      Protocol: HTTP
+      HealthCheckPath: /backend/api/v1/users
+      HealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '20'
+
+  SampleCloudFormationPrivateALBTargetGroupServiceA:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: sample-cfn-private-tg-serviceA
+      VpcId:
+        Fn::ImportValue: !Sub ${StackName}-VPCID
+      Port: 80
+      Protocol: HTTP
+      HealthCheckPath: /index.html
+      HealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '20'
+
+  SampleCloudFormationPrivateALBTargetGroupServiceB:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: sample-cfn-private-tg-serviceB
+      VpcId:
+        Fn::ImportValue: !Sub ${StackName}-VPCID
+      Port: 80
+      Protocol: HTTP
+      HealthCheckPath: /index.html
+      HealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '20'
+
+  SampleCloudFormationPrivateALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref SampleCloudFormationBackendALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref SampleCloudFormationPrivateALBTargetGroupDefault
+
+  SampleCloudFormationPrivateALBListenerRuleServiceA:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref SampleCloudFormationPrivateALBTargetGroupServiceA
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - /serviceA/*
+      ListenerArn: !Ref SampleCloudFormationPrivateALBListener
+      Priority: 1
+
+  SampleCloudFormationPrivateALBListenerRuleServiceB:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref SampleCloudFormationPrivateALBTargetGroupServiceB
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - /serviceB/*
+      ListenerArn: !Ref SampleCloudFormationPrivateALBListener
+      Priority: 2
+
+Outputs:
+  SampleCloudFormationPublicALBDNS:
+    Description: Public DNS Name
+    Value: !GetAtt SampleCloudFormationFrontendALB.DNSName
+    Export:
+      Name: !Sub ${StackName}-PublicALBDNS
+
+  SampleCloudFormationPrivateALBDNS:
+    Description: Private DNS Name
+    Value: !GetAtt SampleCloudFormationBackendALB.DNSName
+    Export:
+      Name: !Sub ${StackName}-PrivateALBDNS
+
+  SampleCloudFormationPublicALBTargetGroup:
+    Description: Public TagetGroup
+    Value: !Ref SampleCloudFormationPublicALBTargetGroup
+    Export:
+      Name: !Sub ${StackName}-PublicALBTargetGroup
+
+  SampleCloudFormationPrivateALBTargetGroupDefault:
+    Description: Private TagetGroup Default
+    Value: !Ref SampleCloudFormationPrivateALBTargetGroupDefault
+    Export:
+      Name: !Sub ${StackName}-PrivateALBTargetGroupDefault
+
+  SampleCloudFormationPrivateALBTargetGroupServiceA:
+    Description: Private TagetGroup ServiceA
+    Value: !Ref SampleCloudFormationPrivateALBTargetGroupServiceA
+    Export:
+      Name: !Sub ${StackName}-PrivateALBTargetGroupServiceA
+
+  SampleCloudFormationPrivateALBTargetGroupServiceB:
+    Description: Private TagetGroup ServiceB
+    Value: !Ref SampleCloudFormationPrivateALBTargetGroupServiceB
+    Export:
+      Name: !Sub ${StackName}-PrivateALBTargetGroupServiceB

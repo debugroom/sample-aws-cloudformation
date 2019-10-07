@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Sample CloudFormation template with YAML - ECS Service Launch
+
+Parameters:
+  StackName:
+    Description: Target VPC Stack Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: sample-cloudformation-vpc-1
+  DesiredCount:
+    Description: Number of container service to launch in ECS cluster
+    Type: Number
+    Default: '1'
+
+Resources:
+  SampleCloudFormationFrontendECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster:
+        Fn::ImportValue: !Sub ${StackName}-FrontendEcsCluster
+      DesiredCount: !Ref DesiredCount
+      TaskDefinition:
+        Fn::ImportValue: !Sub ${StackName}-FrontendEcsTaskDefinition
+      LaunchType: EC2
+      LoadBalancers:
+        - ContainerName: sample-ecs-frontend
+          ContainerPort: 8080
+          TargetGroupArn:
+            Fn::ImportValue: !Sub ${StackName}-PublicALBTargetGroup
+  SampleCloudFormationBackendECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster:
+        Fn::ImportValue: !Sub ${StackName}-BackendEcsCluster
+      DesiredCount: !Ref DesiredCount
+      TaskDefinition:
+        Fn::ImportValue: !Sub ${StackName}-BackendEcsTaskDefinition
+      LaunchType: EC2
+      LoadBalancers:
+        - ContainerName: sample-ecs-backend
+          ContainerPort: 8081
+          TargetGroupArn:
+            Fn::ImportValue: !Sub ${StackName}-PrivateALBTargetGroupDefault
+
+Outputs:
+  SampleCloudFormationFrontendECSService:
+    Description: Frontend ECS Service
+    Value: !Ref SampleCloudFormationFrontendECSService
+    Export:
+      Name: !Sub ${StackName}-FrontendEcsService
+  SampleCloudFormationBackendECSService:
+    Description: Backend ECS Service
+    Value: !Ref SampleCloudFormationBackendECSService
+    Export:
+      Name: !Sub ${StackName}-BackendEcsService
+

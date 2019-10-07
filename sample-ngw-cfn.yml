@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Sample CloudFormation template with YAML - NatGateway
+
+Parameters:
+  StackName:
+    Description: Target VPC Stack Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: sample-cloudformation-vpc-1
+
+Resources:
+  SampleCloudFormationNatGWEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+#      Domain: !Ref SampleCloudFormationVPC
+      Domain:
+        Fn::ImportValue: !Sub ${StackName}-VPCID
+
+  SampleCloudFormationNatGW:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt SampleCloudFormationNatGWEIP.AllocationId
+#      SubnetId: !Ref PublicSubnet1
+      SubnetId:
+        Fn::ImportValue: !Sub ${StackName}-PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: SampleCloudFormationNatGW
+
+  MainRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+#      VpcId: !Ref SampleCloudFormationVPC
+      VpcId:
+        Fn::ImportValue: !Sub ${StackName}-VPCID
+      Tags:
+        - Key: Name
+          Value: Private Route
+
+  MainRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref MainRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref SampleCloudFormationNatGW
+
+  PrivateSubnet1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+#     SubnetId: !Ref PrivateSubnet1
+      SubnetId:
+        Fn::ImportValue: !Sub ${StackName}-PrivateSubnet1
+      RouteTableId: !Ref MainRouteTable
+
+  PrivateSubnet2Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+#      SubnetId: !Ref PrivateSubnet2
+      SubnetId:
+        Fn::ImportValue: !Sub ${StackName}-PrivateSubnet2
+      RouteTableId: !Ref MainRouteTable
+

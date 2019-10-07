@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Sample CloudFormation template with YAML - ECS Task Definition
+
+Parameters:
+  StackName:
+    Description: Target VPC Stack Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: sample-cloudformation-vpc-1
+
+Resources:
+  SampleCloudFormationECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  SampleCloudFormationBackendECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: sample-cloudformation-task-backend
+      RequiresCompatibilities:
+       - EC2
+      Memory: '1024'
+      Cpu: '512'
+      NetworkMode: bridge
+      ExecutionRoleArn: !Ref SampleCloudFormationECSTaskExecutionRole
+      ContainerDefinitions:
+        - Name: sample-ecs-backend
+          Image: debugroom/sample-aws-ecs-backend:1.0-SNAPSHOT
+          PortMappings:
+            - ContainerPort: 8081
+              HostPort: 0
+          Memory: 1024
+
+  SampleCloudFormationFrontendECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: sample-cloudformation-task-frontend
+      RequiresCompatibilities:
+        - EC2
+      Memory: '1024'
+      Cpu: '512'
+      NetworkMode: bridge
+      ExecutionRoleArn: !Ref SampleCloudFormationECSTaskExecutionRole
+      ContainerDefinitions:
+        - Name: sample-ecs-frontend
+          Image: debugroom/sample-aws-ecs-frontend:1.0-SNAPSHOT
+          PortMappings:
+            - ContainerPort: 8080
+              HostPort: 0
+          Environment:
+            - Name: SERVICE_DNS
+              Value:
+                Fn::ImportValue: !Sub ${StackName}-PrivateALBDNS
+          Memory: 1024
+
+Outputs:
+  SampleCloudFormationFrontendECSTaskDefinition:
+    Description: Frontend ECS Task Definition
+    Value: !Ref SampleCloudFormationFrontendECSTaskDefinition
+    Export:
+      Name: !Sub ${StackName}-FrontendEcsTaskDefinition
+
+  SampleCloudFormationBackendECSTaskDefinition:
+    Description: Backend ECS Task Definition
+    Value: !Ref SampleCloudFormationBackendECSTaskDefinition
+    Export:
+      Name: !Sub ${StackName}-BackendEcsTaskDefinition
+
