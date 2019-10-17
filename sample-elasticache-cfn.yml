@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Sample CloudFormation template with YAML - ElastiCache Definition
+
+Parameters:
+  StackName:
+    Description: Target VPC Stack Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: sample-cloudformation-vpc-1
+  CacheInstanceType:
+    Description: Cache instance type
+    Type: String
+    Default: cache.t2.micro
+
+Resources:
+  SampleCloudFormationElastiCacheSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      CacheSubnetGroupName: SampleCloudFormationElastiCacheSubnetGroup
+      Description: SampleCloudFormation ElastiCacheSubnetGroup
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${StackName}-PublicSubnet1
+        - Fn::ImportValue: !Sub ${StackName}-PublicSubnet2
+
+  SampleCloudFormationElastiCacheParameterGroup:
+    Type: AWS::ElastiCache::ParameterGroup
+    Properties:
+      CacheParameterGroupFamily: redis5.0
+      Description: SampleCloudFormation ElastiCacheParameterGroup
+      Properties:
+        cluster-enabled: "no"
+
+  SampleCloudFormationElastiCacheRedis:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      ReplicationGroupId: samplecloudformation-1
+      Engine: redis
+      ReplicationGroupDescription: SampleCloudFormation RedisCluster
+      EngineVersion: 5.0.3
+      Port: 6379
+      CacheParameterGroupName: !Ref SampleCloudFormationElastiCacheParameterGroup
+      CacheNodeType: !Ref CacheInstanceType
+      ReplicasPerNodeGroup: 2
+      AutomaticFailoverEnabled: true
+      CacheSubnetGroupName: !Ref SampleCloudFormationElastiCacheSubnetGroup
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub ${StackName}-SecurityGroupElastiCacheRedis
+
+Outputs:
+  SampleCloudFormationElastiCacheRedis:
+    Description: ElastiCache Redis
+    Value: !Ref SampleCloudFormationElastiCacheRedis
+    Export:
+      Name: !Sub ${StackName}-ElastiCacheRedis
+
+  SampleCloudFormationElastiCacheRedisEndPoint:
+    Description: ElastiCache Redis EndPoint
+    Value: !GetAtt SampleCloudFormationElastiCacheRedis.PrimaryEndPoint.Address
+    Export:
+      Name: !Sub ${StackName}-ElastiCacheRedisEndPoint
