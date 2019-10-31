@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Sample CloudFormation template with YAML - Dev DynamoDB Definition
+
+Parameters:
+  StackName:
+    Description: Target VPC Stack Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: sample-cloudformation-vpc-1
+
+Resources:
+  SampleCloudFormationDynamoDBDevSampleTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: dev_sample-table
+      BillingMode: PROVISIONED
+      AttributeDefinitions:
+        - AttributeName: samplePartitionKey
+          AttributeType: S
+        - AttributeName: sampleSortKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: samplePartitionKey
+          KeyType: HASH
+        - AttributeName: sampleSortKey
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+Outputs:
+  SampleCloudFormationDynamoDB:
+    Description: DynamoDB SampleTable
+    Value: !Ref SampleCloudFormationDynamoDBDevSampleTable
+    Export:
+      Name: !Sub ${StackName}-DynamoDBDevSampleTable
+

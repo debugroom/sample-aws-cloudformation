@@ -1,0 +1,16 @@
+spring:
+  profiles:
+    active: dev
+server:
+  servlet:
+    context-path: /backend
+cloud:
+  aws:
+    stack:
+      auto: false
+amazon:
+  dynamodb:
+    region: ap-northeast-1
+    endpoint: https://dynamodb.ap-northeast-1.amazonaws.com
+app:
+  host: ${HOSTNAME:localhost}

@@ -1,0 +1,75 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+    <title>Cloud Formation</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="static/css/flex.css" media="(min-width: 1280px)">
+    <link rel="stylesheet" href="static/css/flex_mobile.css" media="(min-width: 320px) and (max-width: 767px)">
+    <link rel="stylesheet" href="static/css/flex_tablet.css" media="(min-width: 768px) and (max-width: 1279px)">
+    <link rel="stylesheet" href="static/css/portal.css" media="(min-width: 1280px)">
+    <link rel="stylesheet" href="static/css/portal_mobile.css" media="(min-width: 320px) and (max-width: 767px)">
+    <link rel="stylesheet" href="static/css/portal_tablet.css" media="(min-width: 768px) and (max-width: 1279px)">
+</head>
+<body>
+<h1>Hello! CloudFormation Sample!</h1>
+<h2>Process Execution Container</h2>
+<table>
+    <thead>
+    <tr>
+        <th>Frontend実行コンテナ</th>
+        <th>Backend実行コンテナ</th>
+        <th>最終更新日時</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td th:text="${sampleSession.getBffHost()}"></td>
+        <td th:text="${sampleSession.getBackendHost()}"></td>
+        <td th:text="${sampleSession.getLastUpdatedAt()}"></td>
+    </tr>
+    </tbody>
+</table>
+
+<h2>RDS Access Result</h2>
+<table>
+    <thead>
+    <tr>
+        <th>No</th>
+        <th>USER ID</th>
+        <th>FIRST NAME</th>
+        <th>FAMILY NAME</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="userResource, status : ${userResources}">
+        <td th:text="${status.count}"></td>
+        <td th:text="${userResource.userId}"></td>
+        <td th:text="${userResource.firstName}"></td>
+        <td th:text="${userResource.familyName}"></td>
+    </tr>
+    </tbody>
+</table>
+
+<h2>DynamoDB Access Result</h2>
+<table>
+    <thead>
+    <tr>
+        <th>No</th>
+        <th>Partition Key</th>
+        <th>Sort Key</th>
+        <th>Text</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="sampleResource, status : ${sampleResources}">
+        <td th:text="${status.count}"></td>
+        <td th:text="${sampleResource.samplePartitionKey}"></td>
+        <td th:text="${sampleResource.sampleSortKey}"></td>
+        <td th:text="${sampleResource.sampleText}"></td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

@@ -1,0 +1,12 @@
+service:
+  dns: http://localhost:8080
+server:
+  port: 8081
+cloud:
+  aws:
+    credentials:
+      profileName:
+      instanceProfile: false
+    region:
+      auto: false
+      static: ap-northeast-1

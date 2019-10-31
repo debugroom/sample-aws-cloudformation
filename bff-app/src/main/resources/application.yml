@@ -1,0 +1,19 @@
+spring:
+  profiles:
+    active: dev
+  session:
+    store-type: redis
+  redis:
+    host: ${REDIS_CLUSTER_ENDPOINT:localhost}
+    port: ${REDIS_CLUSTER_PORT:6379}
+server:
+  servlet:
+    context-path: /backend-for-frontend
+cloud:
+  aws:
+    stack:
+      auto: false
+app:
+  host: ${HOSTNAME:localhost}
+service:
+  dns: ${SERVICE_DNS}

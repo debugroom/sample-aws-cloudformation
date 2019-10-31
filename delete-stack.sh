@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-stack_name="sample-cloudformation-elasticache-1"
+stack_name="sample-cloudformation-sqs-1"
+#stack_name="sample-cloudformation-s3-1"
+#stack_name="sample-cloudformation-elasticache-1"
 #stack_name="sample-cloudformation-dynamodb-1"
 #stack_name="sample-cloudformation-rds-1"
 #stack_name="sample-cloudformation-ecs-service-1"

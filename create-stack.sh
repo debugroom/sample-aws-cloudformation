@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 
-stack_name="sample-cloudformation-elasticache-1"
-template_path="sample-elasticache-cfn.yml"
+stack_name="sample-cloudformation-dynamodb-dev-1"
+template_path="sample-dynamodb-dev-cfn.yml"
+#stack_name="sample-cloudformation-sqs-1"
+#template_path="sample-sqs-cfn.yml"
+#stack_name="sample-cloudformation-s3-1"
+#template_path="sample-s3-cfn.yml"
+#stack_name="sample-cloudformation-elasticache-1"
+#template_path="sample-elasticache-cfn.yml"
 #stack_name="sample-cloudformation-dynamodb-1"
 #template_path="sample-dynamodb-cfn.yml"
 #stack_name="sample-cloudformation-rds-1"
