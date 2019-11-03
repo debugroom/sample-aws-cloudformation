@@ -23,10 +23,10 @@ RUN yum install -y apache-maven
 ENV JAVA_HOME /etc/alternatives/jre
 RUN git clone https://github.com/debugroom/sample-aws-cloudformation.git /usr/local/sample-aws-cloudformation
 RUN mvn install -f /usr/local/sample-aws-cloudformation/common/pom.xml
-RUN mvn package -f /usr/local/sample-aws-cloudformation/bff-app/pom.xml -Dspring.profiles.active="production"
+RUN mvn package -f /usr/local/sample-aws-cloudformation/backend-app/pom.xml
 RUN cp /etc/localtime /etc/localtime.org
 RUN ln -sf  /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
 
 EXPOSE 8080
 
-CMD java -jar -Dspring.profiles.active=production /usr/local/sample-aws-cloudformation/bff-app/target/sample-cloudformation-bff-0.0.1-SNAPSHOT.jar
+CMD java -jar -Dspring.profiles.active=production /usr/local/sample-aws-cloudformation/backend-app/target/sample-cloudformation-backend-0.0.1-SNAPSHOT.jar

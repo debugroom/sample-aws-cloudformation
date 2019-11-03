@@ -141,6 +141,26 @@ Resources:
       ToPort: 6379
       SourceSecurityGroupId: !Ref SampleCloudFormationSecurityGroupFrontendEcsCluster
 
+  SampleCloudFormationSecurityGroupCodeBuild:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: SampleCloudFormationSecurityGroupCodeBuild
+      GroupDescription: CodeBuild environments
+      VpcId:
+        Fn::ImportValue: !Sub ${StackName}-VPCID
+      Tags:
+        - Key: Name
+          Value: SampleCloudFormationSecurityGroupCodeBuild
+
+  SampleCloudFormationSecurityGroupIngressCodeBuild:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SampleCloudFormationSecurityGroupCodeBuild
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+      CidrIp: "0.0.0.0/0"
+
 Outputs:
   SampleCloudFormationSecurityGroupPublicALB:
     Description: Security Group for Public ALB
@@ -177,4 +197,10 @@ Outputs:
     Value: !Ref SampleCloudFormationSecurityGroupElastiCacheRedis
     Export:
       Name: !Sub ${StackName}-SecurityGroupElastiCacheRedis
+
+  SampleCloudFormationSecurityGroupCodeBuild:
+    Description: Security Group for CodeBuild
+    Value: !Ref SampleCloudFormationSecurityGroupCodeBuild
+    Export:
+      Name: !Sub ${StackName}-SecurityGroupCodeBuild
 

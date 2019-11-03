@@ -1,0 +1,27 @@
+version: 0.2
+env:
+  parameter-store:
+    SONAR_HOST_URL: "SONAR_HOST_URL"
+    SONAR_LOGIN: "SONAR_LOGIN_SAMPLE_CLOUDFORMATION_BACKEND"
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+    commands:
+      - apt-get update -y
+      - apt-get -y install language-pack-ja-base language-pack-ja
+  pre_build:
+    commands:
+      - /usr/sbin/update-locale LANG=ja_JP.UTF-8 LANGUAGE="ja_JP:ja"
+      - export LC_ALL="ja_JP.UTF-8"
+      - locale-gen ja_JP.UTF-8
+      - export LANG=ja_JP.UTF-8
+      - export LANGUAGE="ja_JP:ja"
+      - dpkg-reconfigure locales
+  build:
+    commands:
+      - mvn -f common/pom.xml install
+      - mvn -f backend-app/pom.xml package sonar:sonar -Dsonar.projectKey=sample-cloudformation-backend -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_LOGIN}
+artifacts:
+  files:
+    - backend-app/target/sample-cloudformation-backend-0.0.1-SNAPSHOT.jar
