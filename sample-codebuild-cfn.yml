@@ -112,8 +112,8 @@ Resources:
                   - ec2:CreateNetworkInterfacePermission
                 Condition:
                   StringEquals:
-                    ec2:Subnet:
-                      - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}/subnet/*
+#                    ec2:Subnet:
+#                      - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}/subnet/*
                     ec2:AuthorizedService: codebuild.amazonaws.com
         - PolicyName: !Sub ${CodeBuildProjectName}-ssm-parameterstore-policy
           PolicyDocument:
