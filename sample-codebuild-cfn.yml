@@ -113,8 +113,8 @@ Resources:
                 Condition:
                   StringEquals:
                     ec2:Subnet:
-                      - Fn::ImportValue: !Sub ${StackName}-PublicSubnet1Arn
-                      - Fn::ImportValue: !Sub ${StackName}-PublicSubnet2Arn
+                      - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet1Arn
+                      - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet2Arn
                     ec2:AuthorizedService: codebuild.amazonaws.com
         - PolicyName: !Sub ${CodeBuildProjectName}-ssm-parameterstore-policy
           PolicyDocument:
