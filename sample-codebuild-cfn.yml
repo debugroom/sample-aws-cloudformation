@@ -45,8 +45,8 @@ Resources:
         VpcId:
           Fn::ImportValue: !Sub ${StackName}-VPCID
         Subnets:
-          - Fn::ImportValue: !Sub ${StackName}-PublicSubnet1
-          - Fn::ImportValue: !Sub ${StackName}-PublicSubnet2
+          - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet1
+          - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet2
         SecurityGroupIds:
           - Fn::ImportValue: !Sub ${StackName}-SecurityGroupCodeBuild
       Artifacts:
