@@ -1,0 +1,329 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Sample CloudFormation template with YAML - CodePipeline
+
+Parameters:
+  StackName:
+    Description: Target VPC Stack Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: sample-cloudformation-vpc-1
+  CodePipelineProjectName:
+    Description: CodePipeline CD Project Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: SampleCloudFormationCodePipeline
+
+  CodeBuildBFFStagingContaierBuildProjectName:
+    Description: CI CodeBuild Project Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: SampleCloudFormationCodeBuildCDBFF
+  CodeBuildBackendStagingContainerBuildProjectName:
+    Description: CI CodeBuild Project Name
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[a-zA-Z][-a-zA-Z0-9]*$
+    Default: SampleCloudFormationCodeBuildCDBackend
+  S3BucketName:
+    Description: Type of this BacketName.
+    Type: String
+    Default: debugroom-sample-cloudformation-codepipeline
+
+Resources:
+
+  SampleCloudFormationCodePipelineProject:
+    Type: AWS::CodePipeline::Pipeline
+    DependsOn: SampleCloudFormationS3BucketForCodePipeline
+    Properties:
+      Name: SampleCloudFormationCodePipeline
+      RoleArn: !GetAtt SampleCloudFormationCodePipelineServiceRole.Arn
+      Stages:
+        - Name: SourceStage
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: "1"
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                Owner: "{{resolve:ssm:GitHubRepositoryOwnerName:1}}"
+                Repo: sample-aws-cloudformation
+                Branch: master
+                OAuthToken: "{{resolve:ssm:GitHubOAuthToken:1}}"
+              RunOrder: 1
+        - Name: BackendStagingBuildStage
+          Actions:
+            - Name: BackendStagingBuildAction
+              InputArtifacts:
+                - Name: SourceOutput
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              OutputArtifacts:
+                - Name: BuildBackendStagingArtifact
+              Configuration:
+                ProjectName: !Ref SampleCloudFormationCodeBuildBackendStagingBuildContainer
+      ArtifactStore:
+        Location: !Ref S3BucketName
+        Type: S3
+
+
+  SampleCloudFormationCodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub ${CodePipelineProjectName}-codepipeline-base-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - elasticbeanstalk:*
+                  - ec2:*
+                  - elasticloadbalancing:*
+                  - autoscaling:*
+                  - cloudwatch:*
+                  - s3:*
+                  - sns:*
+                  - cloudformation:*
+                  - rds:*
+                  - sqs:*
+                  - ecs:*
+                Resource: "*"
+                Effect: Allow
+              - Action:
+                  - codecommit:GetBranch
+                  - codecommit:GetCommit
+                  - codecommit:GetUploadArchiveStatus
+                  - codecommit:UploadArchive
+                  - codecommit:CancelUploadArchive
+                Resource: "*"
+                Effect: Allow
+              - Action:
+                  - codedeploy:CreateDeployment
+                  - codedeploy:GetApplicationRevision
+                  - codedeploy:GetDeployment
+                  - codedeploy:GetDeploymentConfig
+                  - codedeploy:RegisterApplicationRevision
+                Resource: "*"
+                Effect: Allow
+              - Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource: "*"
+                Effect: Allow
+              - Action:
+                  - iam:PassRole
+                Resource: "*"
+                Effect: Allow
+                Condition:
+                  StringEqualsIfExists:
+                    iam:PassedToService:
+                      - cloudformation.amazonaws.com
+                      - elasticbeanstalk.amazonaws.com
+                      - ec2.amazonaws.com
+                      - ecs-tasks.amazonaws.com
+              - Action:
+                  - lambda:InvokeFunction
+                  - lambda:ListFunctions
+                Resource: "*"
+                Effect: Allow
+              - Action:
+                  - opsworks:CreateDeployment
+                  - opsworks:DescribeApps
+                  - opsworks:DescribeCommands
+                  - opsworks:DescribeDeployments
+                  - opsworks:DescribeInstances
+                  - opsworks:DescribeStacks
+                  - opsworks:UpdateApp
+                  - opsworks:UpdateStack
+                Resource: "*"
+                Effect: Allow
+              - Action:
+                  - devicefarm:ListProjects
+                  - devicefarm:ListDevicePools
+                  - devicefarm:GetRun
+                  - devicefarm:GetUpload
+                  - devicefarm:CreateUpload
+                  - devicefarm:ScheduleRun
+                Resource: "*"
+                Effect: Allow
+              - Action:
+                  - servicecatalog:ListProvisioningArtifacts
+                  - servicecatalog:CreateProvisioningArtifacts
+                  - servicecatalog:DescribeProvisioningArtifacts
+                  - servicecatalog:DeleteProvisioningArtifacts
+                  - servicecatalog:UpdateProduct
+                Resource: "*"
+                Effect: Allow
+              - Action:
+                  - ecr:DescribeImages
+                Resource: "*"
+                Effect: Allow
+        - PolicyName: !Sub ${CodePipelineProjectName}-ssm-parameterstore-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource:
+                  - "*"
+                Action:
+                  - ssm:DescribeParameters
+              - Effect: Allow
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+                Action:
+                  - ssm:GetParameters
+
+  SampleCloudFormationCodePipelineWebhook:
+    Type: AWS::CodePipeline::Webhook
+    Properties:
+      Name: SampleCloudFormationGitHubWebHook
+      Authentication: GITHUB_HMAC
+      AuthenticationConfiguration:
+        SecretToken: "{{resolve:ssm:GitHubSecret:1}}"
+      Filters:
+        - JsonPath: "$.ref"
+          MatchEquals: refs/heads/{Branch}
+      TargetPipeline: !Ref SampleCloudFormationCodePipelineProject
+      TargetAction: SourceAction
+      TargetPipelineVersion: !GetAtt SampleCloudFormationCodePipelineProject.Version
+      RegisterWithThirdParty: True
+
+
+  SampleCloudFormationCodeBuildBackendStagingBuildContainer:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Ref CodeBuildBackendStagingContainerBuildProjectName
+      Source:
+        Type: CODEPIPELINE
+        GitCloneDepth: 1
+        BuildSpec: backend-app/src/main/codebuild/staging/buildspec.yml
+      Environment:
+        PrivilegedMode: True
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/standard:2.0
+        ComputeType: BUILD_GENERAL1_SMALL
+      ServiceRole: !Ref SampleCloudFormationCodeBuildBackendStagingServiceRole
+      VpcConfig:
+        VpcId:
+          Fn::ImportValue: !Sub ${StackName}-VPCID
+        Subnets:
+          - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet1
+          - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet2
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub ${StackName}-SecurityGroupCodeBuild
+      Artifacts:
+        Type: CODEPIPELINE
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+          GroupName: !Sub ${CodeBuildBackendStagingContainerBuildProjectName}-CloudWatchLogs-BuildLogGroup-Name
+
+  SampleCloudFormationCodeBuildBackendStagingServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub ${CodeBuildBackendStagingContainerBuildProjectName}-codebuild-base-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${CodeBuildBackendStagingContainerBuildProjectName}-CloudWatchLogs-BuildLogGroup-Name
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${CodeBuildBackendStagingContainerBuildProjectName}-CloudWatchLogs-BuildLogGroup-Name:*
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+              - Effect: Allow
+                Resource:
+                  - !Sub arn:aws:s3:::${S3BucketName}/*
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketAcl
+                  - s3:GetBucketLocation
+        - PolicyName: !Sub ${CodeBuildBackendStagingContainerBuildProjectName}-codebuild-vpc-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource:
+                  - "*"
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeDhcpOptions
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeVpcs
+              - Effect: Allow
+                Resource:
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
+                Action:
+                  - ec2:CreateNetworkInterfacePermission
+                Condition:
+                  StringEquals:
+                    ec2:Subnet:
+                      - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet1Arn
+                      - Fn::ImportValue: !Sub ${StackName}-PrivateSubnet2Arn
+                    ec2:AuthorizedService: codebuild.amazonaws.com
+        - PolicyName: !Sub ${CodeBuildBackendStagingContainerBuildProjectName}-ssm-parameterstore-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource:
+                  - "*"
+                Action:
+                  - ssm:DescribeParameters
+              - Effect: Allow
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+                Action:
+                  - ssm:GetParameters
+
+  SampleCloudFormationS3BucketForCodePipeline:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${S3BucketName}
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True

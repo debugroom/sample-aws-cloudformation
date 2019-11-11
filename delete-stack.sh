@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-stack_name="sample-cloudformation-codebuild-1"
+stack_name="sample-cloudformation-codepipeline-1"
+#stack_name="sample-cloudformation-codebuild-1"
 #stack_name="sample-cloudformation-dynamodb-dev-1"
 #stack_name="sample-cloudformation-sqs-1"
 #stack_name="sample-cloudformation-s3-1"

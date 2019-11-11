@@ -78,7 +78,7 @@ Resources:
           - - Type: EVENT
               Pattern: PUSH
             - Type: HEAD_REF
-              #              Pattern: ^refs/heads/feature/.*
+#              Pattern: ^refs/heads/feature/.*
               Pattern: ^refs/heads/master
       Environment:
         Type: LINUX_CONTAINER

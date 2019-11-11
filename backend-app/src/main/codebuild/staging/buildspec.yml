@@ -1,0 +1,37 @@
+version: 0.2
+env:
+  parameter-store:
+    SONAR_HOST_URL: "SONAR_HOST_URL"
+    SONAR_LOGIN: "SONAR_LOGIN_SAMPLE_CLOUDFORMATION_BACKEND"
+    DOCKER_USER: "DOCKER_USER"
+    DOCKER_PASSWORD: "DOCKER_PASSWORD"
+    DOCKER_REPO : "DOCKER_REPO"
+    IMAGE_REPO_NAME: "SAMPLE_CLOUDFORMATION_BACKEND_IMAGE_REPO_NAME"
+    IMAGE_TAG: "SAMPLE_CLOUDFORMATION_BACKEND_IMAGE_TAG_STAGING"
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+  pre_build:
+    commands:
+      #      - echo Logging in to Amazon ECR...
+      #      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+      - echo Logging in to Docker Hub...
+      - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD $DOCKER_REPO
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG backend-app/src/main/docker
+      #    - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $IMAGE_REPO_NAME:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      #      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - docker push $IMAGE_REPO_NAME:$IMAGE_TAG
+      - printf '[{"name":"sample-cloudformation-backend-staging","imageUri":"%s"}]' $IMAGE_REPO_NAME:$IMAGE_TAG > imagedefinitions.json
+artifacts:
+  files:
+    - imagedefinitions.json

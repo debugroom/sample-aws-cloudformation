@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
-stack_name="sample-cloudformation-codebuild-1"
-template_path="sample-codebuild-cfn.yml"
+stack_name="sample-cloudformation-codepipeline-1"
+template_path="sample-codepipeline-cfn.yml"
+#stack_name="sample-cloudformation-codebuild-1"
+#template_path="sample-codebuild-cfn.yml"
 #stack_name="sample-cloudformation-dynamodb-dev-1"
 #template_path="sample-dynamodb-dev-cfn.yml"
 #stack_name="sample-cloudformation-sqs-1"
@@ -35,4 +37,6 @@ if [ "$stack_name" == "" -a "$template_path" == "" ]; then
     exit 1
 fi
 
-aws cloudformation create-stack --stack-name ${stack_name} --template-body file://${template_path} --capabilities CAPABILITY_IAM
+#aws cloudformation create-stack --stack-name ${stack_name} --template-body file://${template_path} --capabilities CAPABILITY_IAM
+# It is better cloudformation deploy option because command can execute even if stack existing(no need to delete existing stack).
+aws cloudformation deploy --stack-name ${stack_name} --template-file ${template_path} --capabilities CAPABILITY_IAM
