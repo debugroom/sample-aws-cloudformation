@@ -1,0 +1,7 @@
+project:
+  name: sample-aws-cloudformation
+  regions:
+    - us-west-1
+tests:
+  vpc-test:
+    template: ./sample-vpc-cfn.yaml
